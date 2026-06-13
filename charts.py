@@ -1,131 +1,70 @@
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import pandas as pd
-import numpy as np
+import seaborn as sns
 
 
-def plot_price_with_mas(df: pd.DataFrame, ticker: str):
-    fig, ax = plt.subplots(figsize=(12, 5))
-    ax.plot(df.index, df["Close"], label="Close Price", color="#1f77b4", linewidth=1.5)
+sns.set_style("whitegrid")
 
-    for col, color in [("MA20", "orange"), ("MA50", "green"), ("MA200", "red")]:
-        if col in df.columns:
-            ax.plot(df.index, df[col], label=col, color=color, linestyle="--", linewidth=1)
 
-    ax.set_title(f"{ticker} – Price & Moving Averages")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Price (USD)")
-    ax.legend()
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-    fig.autofmt_xdate()
+def plot_class_distribution(y):
+    fig, ax = plt.subplots(figsize=(6, 4))
+    sns.countplot(x=y, ax=ax, palette="viridis")
+    ax.set_title("Class Distribution")
+    ax.set_xlabel("Class")
+    ax.set_ylabel("Count")
+    ax.set_xticklabels(["Legitimate", "Fraud"])
     fig.tight_layout()
     return fig
 
 
-def plot_volume(df: pd.DataFrame, ticker: str):
-    fig, ax = plt.subplots(figsize=(12, 3))
-    ax.bar(df.index, df["Volume"], color="#aec7e8", width=1.5)
-    ax.set_title(f"{ticker} – Volume")
-    ax.set_ylabel("Volume")
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-    fig.autofmt_xdate()
+def plot_fraud_amount_distribution(df):
+    fig, ax = plt.subplots(figsize=(6, 4))
+    fraud_df = df[df["Class"] == 1]
+    sns.histplot(fraud_df["Amount"], bins=40, kde=True, ax=ax, color="crimson")
+    ax.set_title("Fraud Transaction Amount Distribution")
+    ax.set_xlabel("Amount")
+    ax.set_ylabel("Frequency")
     fig.tight_layout()
     return fig
 
 
-def plot_rsi(df: pd.DataFrame):
-    fig, ax = plt.subplots(figsize=(12, 3))
-    ax.plot(df.index, df["RSI"], color="purple", linewidth=1)
-    ax.axhline(70, color="red", linestyle="--", linewidth=0.8)
-    ax.axhline(30, color="green", linestyle="--", linewidth=0.8)
-    ax.fill_between(
-        df.index,
-        df["RSI"],
-        70,
-        where=(df["RSI"] >= 70),
-        color="red",
-        alpha=0.2,
-        label="Overbought"
-    )
-    ax.fill_between(
-        df.index,
-        df["RSI"],
-        30,
-        where=(df["RSI"] <= 30),
-        color="green",
-        alpha=0.2,
-        label="Oversold"
-    )
-    ax.set_title("RSI (14)")
-    ax.set_ylabel("RSI")
-    ax.legend()
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-    fig.autofmt_xdate()
+def plot_confusion_matrix(cm):
+    fig, ax = plt.subplots(figsize=(5, 4))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
+    ax.set_title("Confusion Matrix")
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Actual")
     fig.tight_layout()
     return fig
 
 
-def plot_bollinger(df: pd.DataFrame, ticker: str):
-    fig, ax = plt.subplots(figsize=(12, 5))
-    ax.plot(df.index, df["Close"], label="Close", color="#1f77b4", linewidth=1)
-    ax.plot(df.index, df["BB_Upper"], label="Upper Band", color="red", linestyle="--", linewidth=0.8)
-    ax.plot(df.index, df["BB_Lower"], label="Lower Band", color="green", linestyle="--", linewidth=0.8)
-    ax.fill_between(df.index, df["BB_Lower"], df["BB_Upper"], alpha=0.1, color="gray")
-    ax.set_title(f"{ticker} – Bollinger Bands")
-    ax.set_ylabel("Price (USD)")
-    ax.legend()
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-    fig.autofmt_xdate()
+def plot_roc_curve(fpr, tpr, roc_auc):
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.plot(fpr, tpr, label=f"AUC = {roc_auc:.4f}", color="darkorange")
+    ax.plot([0, 1], [0, 1], linestyle="--", color="gray")
+    ax.set_title("ROC Curve")
+    ax.set_xlabel("False Positive Rate")
+    ax.set_ylabel("True Positive Rate")
+    ax.legend(loc="lower right")
     fig.tight_layout()
     return fig
 
 
-def plot_macd(df: pd.DataFrame):
-    fig, ax = plt.subplots(figsize=(12, 3))
-    ax.plot(df.index, df["MACD"], label="MACD", color="blue", linewidth=1)
-    ax.plot(df.index, df["MACD_Signal"], label="Signal", color="orange", linewidth=1)
-    hist = df["MACD"] - df["MACD_Signal"]
-    ax.bar(
-        df.index,
-        hist,
-        color=["green" if v >= 0 else "red" for v in hist],
-        width=1.5,
-        alpha=0.5,
-        label="Histogram"
-    )
-    ax.set_title("MACD")
-    ax.legend()
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-    fig.autofmt_xdate()
+def plot_precision_recall(precision, recall, avg_precision):
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.plot(recall, precision, label=f"AP = {avg_precision:.4f}", color="green")
+    ax.set_title("Precision-Recall Curve")
+    ax.set_xlabel("Recall")
+    ax.set_ylabel("Precision")
+    ax.legend(loc="lower left")
     fig.tight_layout()
     return fig
 
 
-def plot_prediction(actual, preds, dates, ticker: str):
-    fig, ax = plt.subplots(figsize=(12, 5))
-    ax.plot(dates, actual, label="Actual Price", color="blue", linewidth=1.5)
-    ax.plot(dates, preds, label="LSTM Predicted", color="orange", linestyle="--", linewidth=1.5)
-    ax.set_title(f"{ticker} – LSTM Prediction vs Actual")
-    ax.set_ylabel("Price (USD)")
-    ax.legend()
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-    fig.autofmt_xdate()
-    fig.tight_layout()
-    return fig
-
-
-def plot_forecast(df: pd.DataFrame, forecast: np.ndarray, n_days: int, ticker: str):
-    last_date = df.index[-1]
-    future_dates = pd.bdate_range(start=last_date, periods=n_days + 1)[1:]
-
-    fig, ax = plt.subplots(figsize=(12, 5))
-    ax.plot(df.index[-100:], df["Close"].values[-100:], label="Historical", color="blue", linewidth=1.5)
-    ax.plot(future_dates, forecast, label=f"Forecast ({n_days}d)", color="red", linestyle="--", linewidth=2)
-    ax.axvline(x=last_date, color="gray", linestyle=":", linewidth=1)
-    ax.set_title(f"{ticker} – {n_days}-Day Price Forecast")
-    ax.set_ylabel("Price (USD)")
-    ax.legend()
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-    fig.autofmt_xdate()
+def plot_feature_importance(importance, top_n=15):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    importance.head(top_n).sort_values().plot(kind="barh", ax=ax, color="teal")
+    ax.set_title(f"Top {top_n} Feature Importances")
+    ax.set_xlabel("Importance")
+    ax.set_ylabel("Feature")
     fig.tight_layout()
     return fig
