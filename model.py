@@ -21,14 +21,7 @@ except ImportError:
 
 def train_model(X_train, y_train, model_type="XGBoost"):
     if model_type == "XGBoost":
-        if not XGBOOST_AVAILABLE:
-            model = RandomForestClassifier(
-                n_estimators=100,
-                max_depth=6,
-                random_state=42,
-                n_jobs=-1,
-            )
-        else:
+        if XGBOOST_AVAILABLE:
             model = XGBClassifier(
                 n_estimators=100,
                 max_depth=4,
@@ -36,7 +29,13 @@ def train_model(X_train, y_train, model_type="XGBoost"):
                 eval_metric="logloss",
                 random_state=42,
             )
-
+        else:
+            model = RandomForestClassifier(
+                n_estimators=100,
+                max_depth=6,
+                random_state=42,
+                n_jobs=-1,
+            )
     elif model_type == "Random Forest":
         model = RandomForestClassifier(
             n_estimators=100,
@@ -44,13 +43,11 @@ def train_model(X_train, y_train, model_type="XGBoost"):
             random_state=42,
             n_jobs=-1,
         )
-
     elif model_type == "Logistic Regression":
         model = LogisticRegression(
             max_iter=1000,
             random_state=42,
         )
-
     else:
         raise ValueError(f"Unknown model: {model_type}")
 
