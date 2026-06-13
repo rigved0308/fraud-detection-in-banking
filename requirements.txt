@@ -1,9 +1,9 @@
-echo streamlit==1.36.0
-echo pandas==2.2.2
-echo numpy==1.26.4
-echo matplotlib==3.8.4
-echo seaborn==0.13.2
-echo scikit-learn==1.5.0
-echo imbalanced-learn==0.12.3
-echo xgboost==2.1.1
-echo fpdf2==2.7.9
+streamlit
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+imbalanced-learn
+xgboost
+fpdf2
