@@ -10,19 +10,33 @@ from sklearn.metrics import (
     precision_recall_curve,
     average_precision_score,
 )
-from xgboost import XGBClassifier
+
+try:
+    from xgboost import XGBClassifier
+    XGBOOST_AVAILABLE = True
+except ImportError:
+    XGBClassifier = None
+    XGBOOST_AVAILABLE = False
 
 
 def train_model(X_train, y_train, model_type="XGBoost"):
     if model_type == "XGBoost":
-        model = XGBClassifier(
-            n_estimators=100,
-            max_depth=4,
-            learning_rate=0.1,
-            use_label_encoder=False,
-            eval_metric="logloss",
-            random_state=42,
-        )
+        if not XGBOOST_AVAILABLE:
+            model = RandomForestClassifier(
+                n_estimators=100,
+                max_depth=6,
+                random_state=42,
+                n_jobs=-1,
+            )
+        else:
+            model = XGBClassifier(
+                n_estimators=100,
+                max_depth=4,
+                learning_rate=0.1,
+                eval_metric="logloss",
+                random_state=42,
+            )
+
     elif model_type == "Random Forest":
         model = RandomForestClassifier(
             n_estimators=100,
@@ -30,11 +44,13 @@ def train_model(X_train, y_train, model_type="XGBoost"):
             random_state=42,
             n_jobs=-1,
         )
+
     elif model_type == "Logistic Regression":
         model = LogisticRegression(
             max_iter=1000,
             random_state=42,
         )
+
     else:
         raise ValueError(f"Unknown model: {model_type}")
 
@@ -68,10 +84,12 @@ def evaluate_model(model, X_test, y_test):
 
 
 def get_feature_importance(model, feature_names, model_type):
-    if model_type in ["XGBoost", "Random Forest"]:
+    if hasattr(model, "feature_importances_"):
         importance = model.feature_importances_
         return pd.Series(importance, index=feature_names).sort_values(ascending=False)
-    elif model_type == "Logistic Regression":
+
+    if model_type == "Logistic Regression" and hasattr(model, "coef_"):
         importance = np.abs(model.coef_[0])
         return pd.Series(importance, index=feature_names).sort_values(ascending=False)
+
     return None
