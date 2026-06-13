@@ -1,80 +1,65 @@
+import io
+import os
 import tempfile
+
 from fpdf import FPDF
-import matplotlib.pyplot as plt
 
 
-def _save_fig(fig: plt.Figure) -> str:
-    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-    fig.savefig(tmp.name, bbox_inches="tight", dpi=150)
-    tmp.close()
-    return tmp.name
-
-
-def _safe_text(text):
-    return (
-        str(text)
-        .replace("📈", "")
-        .replace("🔎", "")
-        .replace("🤖", "")
-        .replace("🔮", "")
-        .replace("💾", "")
-        .replace("🟢", "Green")
-        .replace("🔴", "Red")
-        .replace("🟡", "Yellow")
-        .replace("²", "2")
-        .replace("–", "-")
-        .replace("—", "-")
-    )
-
-
-def build_pdf(ticker, period, metrics, summary_stats, figs: dict) -> bytes:
+def build_pdf(model_type, summary, report, figs):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
 
     pdf.add_page()
-    pdf.set_fill_color(15, 52, 96)
-    pdf.rect(0, 0, 210, 40, "F")
-    pdf.set_font("Helvetica", "B", 18)
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_y(12)
-    pdf.cell(0, 10, "Stock Price Analysis Report", align="C", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("Helvetica", size=12)
-    pdf.cell(0, 8, _safe_text(f"Ticker: {ticker}  |  Period: {period}"), align="C", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_text_color(0, 0, 0)
-    pdf.ln(8)
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Fraud Detection Report", ln=True)
 
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(190, 8, "Summary Statistics", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("Helvetica", size=10)
-    for k, v in summary_stats.items():
-        pdf.set_x(10)
-        pdf.multi_cell(190, 6, _safe_text(f"{k}: {v}"))
-    pdf.ln(3)
+    pdf.set_font("Arial", "", 11)
+    pdf.cell(0, 8, f"Model: {model_type}", ln=True)
+    pdf.ln(4)
 
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(190, 8, "LSTM Model Evaluation", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("Helvetica", size=10)
-    for k, v in metrics.items():
-        pdf.set_x(10)
-        pdf.multi_cell(190, 6, _safe_text(f"{k}: {v}"))
-    pdf.ln(3)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 8, "Summary", ln=True)
 
-    chart_titles = {
-        "price_ma": "Price & Moving Averages",
-        "volume": "Volume Chart",
-        "bollinger": "Bollinger Bands",
-        "rsi": "RSI Indicator",
-        "macd": "MACD",
-        "prediction": "LSTM Prediction vs Actual",
-        "forecast": "Future Price Forecast",
-    }
+    pdf.set_font("Arial", "", 11)
+    for key, value in summary.items():
+        pdf.cell(0, 8, f"{key}: {value}", ln=True)
 
-    for key, title in chart_titles.items():
-        if key in figs and figs[key] is not None:
-            pdf.add_page()
-            pdf.set_font("Helvetica", "B", 13)
-            pdf.cell(190, 8, title, new_x="LMARGIN", new_y="NEXT")
-            path = _save_fig(figs[key])
-            pdf.image(path, x=10, w=185)
+    pdf.ln(4)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 8, "Classification Report", ln=True)
 
-    return bytes(pdf.output())
+    pdf.set_font("Arial", "", 10)
+    for label in ["0", "1"]:
+        if label in report:
+            pdf.cell(
+                0,
+                7,
+                f"Class {label} | Precision: {report[label]['precision']:.4f} | "
+                f"Recall: {report[label]['recall']:.4f} | "
+                f"F1-score: {report[label]['f1-score']:.4f}",
+                ln=True,
+            )
+
+    temp_files = []
+    try:
+        for name, fig in figs.items():
+            if fig is None:
+                continue
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                fig.savefig(tmp.name, bbox_inches="tight")
+                temp_files.append(tmp.name)
+
+                pdf.add_page()
+                pdf.set_font("Arial", "B", 12)
+                pdf.cell(0, 8, name.replace("_", " ").title(), ln=True)
+                pdf.ln(4)
+                pdf.image(tmp.name, w=180)
+
+        pdf_bytes = pdf.output(dest="S").encode("latin-1")
+        return pdf_bytes
+
+    finally:
+        for path in temp_files:
+            if os.path.exists(path):
+                os.remove(path)
